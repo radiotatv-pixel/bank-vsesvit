@@ -214,7 +214,7 @@ nav.tabs button[aria-selected="true"]{color:var(--gold)}
 
     <div id="todayOpen" class="panel">
       <h2 id="leftHead">У Вас є 1 000 $. Купуйте все, що бажаєте</h2>
-      <p class="sub">День закривається, коли на рахунку залишається рівно 0.</p>
+      <p class="sub">День закриється сам, щойно на рахунку залишиться 0.</p>
       <div class="box rate" id="rateAsk" hidden>
         <b style="font-size:15px">Який сьогодні курс долара?</b>
         <span style="font-size:13px;color:var(--muted)" id="rateHint">Подивіться курс у своєму банку і впишіть його. Після цього всі суми будуть видні і в доларах, і в гривнях.</span>
@@ -260,7 +260,6 @@ nav.tabs button[aria-selected="true"]{color:var(--gold)}
       <div class="box">
         <div class="tx" id="todayTx"></div>
         <div class="left"><span>Залишок на рахунку</span><b class="num" id="leftTxt">1 000 $</b></div>
-        <button class="btn" id="closeDay" disabled>Закрити день</button>
         <span class="hint" id="closeHint"></span>
       </div>
 
@@ -516,8 +515,7 @@ function render(){
   if(!d.items.length){const e=document.createElement("div");e.className="empty";e.textContent="Поки жодної покупки. Почніть з того, чого хочеться найбільше.";tx.append(e);}
   d.items.forEach((it,i)=>tx.append(txRow(it,it.t?"Сьогодні, "+it.t:"Сьогодні",()=>{d.items.splice(i,1);persist();render();})));
   const lt=$("leftTxt");lt.textContent=money(left)+(rt?" · "+uah(left,rt):"");lt.className="num "+(left===0n?"ok":"warn");
-  $("closeDay").disabled=left!==0n;
-  $("closeHint").textContent=left===0n?"":"Щоб закрити день, витратьте ще "+both(left,rt)+".";
+  $("closeHint").textContent=left===0n?"":"День закриється автоматично, коли на рахунку залишиться 0. Залишилось витратити "+both(left,rt)+".";
   $("allBtn").disabled=left<=0n;
   if(S.seenPush<S.day&&!d.closed){$("pushText").textContent=(addr()?cap(addr())+", на":"На")+" Ваш рахунок зараховано "+short(cr)+" всесвітніх коштів. "+(rt?"Що сьогодні купуємо?":"Який сьогодні курс долара?");$("push").hidden=false;}
   else $("push").hidden=true;
@@ -551,8 +549,10 @@ function tryAdd(name,amt){
   const key=norm(name);
   const dup=allItems().find(i=>norm(i.name)===key);
   if(dup){askDetail(name,amt,dup);return false;}
-  d.items.push({name,amt,cat:selCat,rate:rateNow(),t:nowHM()});persist();render();
-  $("iName").value="";$("iAmt").value="";hideDup();return true;
+  d.items.push({name,amt,cat:selCat,rate:rateNow(),t:nowHM()});
+  $("iName").value="";$("iAmt").value="";hideDup();
+  if(leftNow()===0n)closeToday();else{persist();render();}
+  return true;
 }
 let pending=null;
 function joinName(base,det){det=det.trim().replace(/^[,\s]+/,"");return det?base+", "+det:base;}
@@ -575,9 +575,9 @@ function confirmDup(){
   const full=joinName(pending.base,det),amt=pending.amt;
   const dup=allItems().find(i=>norm(i.name)===norm(full));
   if(dup){$("dupMsg").textContent="«"+dup.name+"» теж уже є (День "+dup.day+"). Додайте інше уточнення.";$("iDetail").select();return;}
-  cur().items.push({name:full,amt,cat:selCat,rate:rateNow(),t:nowHM()});persist();
-  $("iName").value="";$("iAmt").value="";hideDup();render();
-  toast(leftNow()===0n?"Оплачено. Рахунок на нулі!":"Оплачено: "+full);
+  cur().items.push({name:full,amt,cat:selCat,rate:rateNow(),t:nowHM()});
+  $("iName").value="";$("iAmt").value="";hideDup();
+  if(leftNow()===0n)closeToday();else{persist();render();toast("Оплачено: "+full);}
 }
 $("iDetail").addEventListener("input",updPreview);
 // пробіли між розрядами під час введення: 20000 → 20 000
@@ -599,10 +599,10 @@ $("addForm").addEventListener("submit",e=>{
   const left=leftNow();
   if($("iCur").value==="uah"){const r=BigInt(rateNow());amt=(amt*100n+r/2n)/r;if(amt<=0n){toast("Сума замала, менше 1 цента");return;}if(amt>left&&amt-left<=1n)amt=left;}
   if(amt>left){toast("На рахунку лише "+both(left,rateNow())+". Зменште суму або натисніть «Уся решта сюди».");return;}
-  if(tryAdd(name,amt)){$("iName").focus();toast(leftNow()===0n?"Оплачено. Рахунок на нулі!":"Оплачено");}
+  if(tryAdd(name,amt)&&!cur().closed){$("iName").focus();toast("Оплачено");}
 });
-$("allBtn").onclick=()=>{const left=leftNow();if(left<=0n)return;if(tryAdd($("iName").value.trim(),left))toast("Решту витрачено. Рахунок на нулі!");};
-$("closeDay").onclick=()=>{if(leftNow()!==0n)return;cur().closed=true;S.lastDone=today();S.seenPush=Math.max(S.seenPush,S.day);lsSave();clearTimeout(saveT);pushState();render();window.scrollTo({top:0,behavior:"smooth"});toast("День "+S.day+" закрито");};
+$("allBtn").onclick=()=>{const left=leftNow();if(left<=0n)return;tryAdd($("iName").value.trim(),left);};
+function closeToday(){cur().closed=true;S.lastDone=today();S.seenPush=Math.max(S.seenPush,S.day);lsSave();clearTimeout(saveT);pushState();render();window.scrollTo({top:0,behavior:"smooth"});toast("Рахунок на нулі. День "+S.day+" закрито");}
 $("rateOk").onclick=()=>{
   const k=toCents($("iRate").value,0);
   if(k===null||k<100n||k>100000n){toast("Впишіть курс числом, наприклад 41,50");$("iRate").focus();return;}
