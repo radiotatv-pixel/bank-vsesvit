@@ -83,7 +83,8 @@ h2{font-family:var(--f-display);font-weight:600;font-size:19px;margin:4px 0 0;te
 .box{background:var(--surface);border:1px solid var(--line);border-radius:20px;padding:16px;display:flex;flex-direction:column;gap:12px}
 label.f{display:flex;flex-direction:column;gap:6px;font-size:13px;color:var(--muted);font-weight:600}
 input[type=text],input[type=number],select{width:100%;background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:11px 12px;font-size:15px;min-width:0}
-.amt{display:grid;grid-template-columns:minmax(0,1fr) 92px 64px;gap:8px}
+.amt{display:grid;grid-template-columns:minmax(0,1fr) 72px;gap:8px}
+.push .tipline{display:block;margin-top:6px;color:var(--muted);font-size:13px}
 .rate{display:flex;flex-direction:column;gap:10px}
 .rate .r{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px}
 .rateline{display:flex;justify-content:space-between;align-items:center;gap:10px;font-size:14px;color:var(--muted);flex-wrap:wrap}
@@ -194,7 +195,7 @@ nav.tabs button[aria-selected="true"]{color:var(--gold)}
 
   <div class="push" id="push" hidden>
     <div class="ic"><svg viewBox="0 0 40 40" aria-hidden="true"><ellipse cx="20" cy="20" rx="15" ry="6" fill="none" stroke="#E2B85A" stroke-width="2.4" transform="rotate(-25 20 20)"/><circle cx="20" cy="20" r="6" fill="#E2B85A"/></svg></div>
-    <p><strong>Банк «Всесвіт» · щойно</strong><span id="pushText"></span></p>
+    <p><strong>Банк «Всесвіт» · щойно</strong><span id="pushText"></span><span class="tipline" id="tipText"></span></p>
     <button class="x" id="pushX" aria-label="Закрити сповіщення">×</button>
   </div>
 
@@ -211,15 +212,9 @@ nav.tabs button[aria-selected="true"]{color:var(--gold)}
       </div>
     </div>
 
-    <div class="prog">
-      <div class="meta"><span>Шлях достатку</span><span class="num" id="progTxt">0 з 40 днів</span></div>
-      <div class="dots" id="dots"></div>
-    </div>
-
     <div id="todayOpen" class="panel">
       <h2 id="leftHead">У Вас є 1 000 $. Купуйте все, що бажаєте</h2>
       <p class="sub">День закривається, коли на рахунку залишається рівно 0.</p>
-      <div class="tip"><small>Підказка дня</small><span id="tipText"></span></div>
       <div class="box rate" id="rateAsk" hidden>
         <b style="font-size:15px">Який сьогодні курс долара?</b>
         <span style="font-size:13px;color:var(--muted)" id="rateHint">Подивіться курс у своєму банку і впишіть його. Після цього всі суми будуть видні і в доларах, і в гривнях.</span>
@@ -250,28 +245,16 @@ nav.tabs button[aria-selected="true"]{color:var(--gold)}
         <label class="f" for="iAmt">Сума
           <span class="amt">
             <input type="text" id="iAmt" placeholder="0" inputmode="decimal">
-            <select id="iUnit" aria-label="Множник суми">
-              <option value="0">—</option>
-              <option value="3">тис.</option>
-              <option value="6">млн</option>
-              <option value="9">млрд</option>
-              <option value="12">трлн</option>
-              <option value="15">квадрлн</option>
-            </select>
             <select id="iCur" aria-label="Валюта">
               <option value="usd">$</option>
               <option value="uah">₴</option>
             </select>
           </span>
         </label>
-        <div class="f" style="font-size:13px;color:var(--muted);font-weight:600">Категорія
-          <div class="cats" id="cats" style="margin-top:6px"></div>
-        </div>
         <div class="btns">
           <button class="btn" type="submit">Купити</button>
           <button class="btn ghost" type="button" id="allBtn">Уся решта сюди</button>
         </div>
-        <div class="ideas" id="ideas" aria-label="Ідеї"></div>
       </form>
 
       <div class="box">
@@ -281,7 +264,6 @@ nav.tabs button[aria-selected="true"]{color:var(--gold)}
         <span class="hint" id="closeHint"></span>
       </div>
 
-      <div class="rule"><span><b>Правила.</b> Кожна покупка лише один раз за всю гру. Якщо пропустити 2 дні поспіль, шлях почнеться з першого дня.</span></div>
     </div>
 
     <div class="box" id="paywall" hidden>
@@ -315,7 +297,12 @@ nav.tabs button[aria-selected="true"]{color:var(--gold)}
       <div class="stat"><small>Закритих днів</small><b class="num" id="sDays">0</b></div>
       <div class="stat"><small>Найбільша покупка</small><b class="num" id="sMax">—</b></div>
     </div>
-    <div class="box"><div class="bars" id="bars"></div></div>
+    <div class="box">
+      <div class="prog">
+        <div class="meta"><span>Шлях до всіх грошей світу</span><span class="num" id="progTxt">0 з 40 днів</span></div>
+        <div class="dots" id="dots"></div>
+      </div>
+    </div>
   </section>
 
   <!-- SETTINGS -->
@@ -331,6 +318,10 @@ nav.tabs button[aria-selected="true"]{color:var(--gold)}
     <div class="box">
       <b style="font-size:14px">Як нараховуються кошти</b>
       <span style="font-size:14px;color:var(--muted)">Перший день 1 000 $, далі щодня сума подвоюється: 2 000 $, 4 000 $, 8 000 $… Мільйон доларів приходить на 11-й день, мільярд на 21-й, трильйон на 31-й, а на 40-й день майже 550 трильйонів доларів, тобто всі гроші світу. Курс долара Ви щодня вписуєте самі, і банк показує суми ще й у гривнях.</span>
+    </div>
+    <div class="box">
+      <b style="font-size:14px">Умови</b>
+      <span style="font-size:14px;color:var(--muted)">День закривається, коли на рахунку залишається рівно 0. Кожна покупка лише один раз за всю гру: повторну потрібно уточнити. Якщо пропустити 2 дні поспіль, шлях почнеться з першого дня.</span>
     </div>
     <div class="box">
       <button class="btn ghost" id="resetAsk">Почати шлях заново</button>
@@ -472,14 +463,15 @@ function sync(){
 const $=id=>document.getElementById(id);
 function toast(t){const el=$("toast");el.textContent=t;el.hidden=false;clearTimeout(toast._t);toast._t=setTimeout(()=>el.hidden=true,2600);}
 function catOf(id){return CATS.find(c=>c.id===id)||CATS[0];}
+function nowHM(){const d=new Date();return String(d.getHours()).padStart(2,"0")+":"+String(d.getMinutes()).padStart(2,"0");}
 function addr(){return [S.title,S.name].filter(Boolean).join(" ");}
 function cap(t){return t?t[0].toUpperCase()+t.slice(1):t;}
 function greet(){return addr()?"Вітаємо, "+addr()+"!":"Вітаємо!";}
 function plural(n,a,b,c){const m10=n%10,m100=n%100;if(m10===1&&m100!==11)return a;if(m10>=2&&m10<=4&&(m100<12||m100>14))return b;return c;}
 function txRow(it,sub,onDel){
-  const c=catOf(it.cat);
   const row=document.createElement("div");row.className="txr";
-  const av=document.createElement("div");av.className="av";av.style.background=c.c;av.textContent=c.n[0];
+  let h=0;for(const ch of it.name)h=(h*31+ch.codePointAt(0))>>>0;
+  const av=document.createElement("div");av.className="av";av.style.background=CATS[h%CATS.length].c;av.textContent=(it.name.trim()[0]||"?").toUpperCase();
   const nm=document.createElement("div");nm.className="nm";
   const b=document.createElement("b");b.textContent=it.name;const sm=document.createElement("small");sm.textContent=sub;nm.append(b,sm);
   const sum=document.createElement("div");sum.className="sum num";sum.textContent="−"+short(it.amt);if(it.rate){const u=document.createElement("small");u.textContent=uah(it.amt,it.rate);sum.append(u);}
@@ -518,11 +510,11 @@ function render(){
     if(lk)$("closedNext").textContent="Наступний день відкриється після оплати участі.";
     else $("closedNext").textContent=fin?"Подивіться в розділі «Покупки», скільки всього Ви дозволили собі за цей шлях.":"Наступне зарахування, "+short(credit(S.day+1))+", прийде завтра.";
   }
-  $("tipText").textContent=PROMPTS[S.day-1]||"";
+  $("tipText").textContent=PROMPTS[S.day-1]?"Ідея дня: "+PROMPTS[S.day-1]:"";
   $("leftHead").textContent=left===0n?"Усе витрачено. Можна закривати день":(addr()?cap(addr())+", у Вас є ":"У Вас є ")+both(left,rt)+". Купуйте все, що бажаєте";
   const tx=$("todayTx");tx.textContent="";
   if(!d.items.length){const e=document.createElement("div");e.className="empty";e.textContent="Поки жодної покупки. Почніть з того, чого хочеться найбільше.";tx.append(e);}
-  d.items.forEach((it,i)=>tx.append(txRow(it,catOf(it.cat).n,()=>{d.items.splice(i,1);persist();render();})));
+  d.items.forEach((it,i)=>tx.append(txRow(it,it.t?"Сьогодні, "+it.t:"Сьогодні",()=>{d.items.splice(i,1);persist();render();})));
   const lt=$("leftTxt");lt.textContent=money(left)+(rt?" · "+uah(left,rt):"");lt.className="num "+(left===0n?"ok":"warn");
   $("closeDay").disabled=left!==0n;
   $("closeHint").textContent=left===0n?"":"Щоб закрити день, витратьте ще "+both(left,rt)+".";
@@ -538,7 +530,7 @@ function renderHist(){
   $("histSub").textContent=all.length?all.length+" "+plural(all.length,"покупка","покупки","покупок")+" за цей шлях. Кожна лише один раз.":"Усе, що Ви придбали за цей шлях.";
   if(!all.length){const e=document.createElement("p");e.className="empty";e.textContent="Список порожній. Ваші покупки з'являться тут.";box.append(e);return;}
   const wrap=document.createElement("div");wrap.className="box";const tx=document.createElement("div");tx.className="tx";
-  all.slice().reverse().forEach((it,idx)=>tx.append(txRow(it,"№"+(all.length-idx)+" · День "+it.day+" · "+catOf(it.cat).n,null)));
+  all.slice().reverse().forEach((it,idx)=>tx.append(txRow(it,"День "+it.day+(it.t?" · "+it.t:""),null)));
   wrap.append(tx);box.append(wrap);
 }
 function renderStats(){
@@ -550,19 +542,8 @@ function renderStats(){
   $("sDays").textContent=Object.values(S.days).filter(x=>x.closed).length;
   const mx=all.reduce((m,i)=>!m||i.amt>m.amt?i:m,null);
   $("sMax").textContent=mx?compact(mx.amt):"—";
-  const by={};all.forEach(i=>by[i.cat]=(by[i.cat]||0n)+i.amt);
-  const bars=$("bars");bars.textContent="";
-  if(!total){const e=document.createElement("p");e.className="empty";e.textContent="Тут буде видно, на що Ви витрачаєте найбільше: на себе, на близьких чи на мрію.";bars.append(e);return;}
-  CATS.slice().sort((a,b)=>{const x=by[a.id]||0n,y=by[b.id]||0n;return y>x?1:y<x?-1:0;}).forEach(c=>{
-    const v=by[c.id]||0n;const pct=Number(v*10000n/total)/100;
-    const w=document.createElement("div");w.className="bar";
-    w.innerHTML='<div class="h"><span></span><span class="num"></span></div><div class="t"><i></i></div>';
-    w.querySelector(".h span").textContent=c.n;w.querySelector(".h .num").textContent=Math.round(pct)+"%";
-    const i=w.querySelector(".t i");i.style.width=pct+"%";i.style.background=c.c;bars.append(w);});
+
 }
-CATS.forEach(c=>{const b=document.createElement("button");b.type="button";b.className="cat";b.setAttribute("aria-pressed",c.id===selCat);b.innerHTML='<i></i><span></span>';b.querySelector("i").style.background=c.c;b.querySelector("span").textContent=c.n;
-  b.onclick=()=>{selCat=c.id;document.querySelectorAll(".cat").forEach(x=>x.setAttribute("aria-pressed",x===b));};$("cats").append(b);});
-IDEAS.forEach(t=>{const b=document.createElement("button");b.type="button";b.className="idea";b.textContent="+ "+t;b.onclick=()=>{$("iName").value=t;$("iAmt").focus();};$("ideas").append(b);});
 
 function tryAdd(name,amt){
   const d=cur();if(d.closed)return false;
@@ -570,7 +551,7 @@ function tryAdd(name,amt){
   const key=norm(name);
   const dup=allItems().find(i=>norm(i.name)===key);
   if(dup){askDetail(name,amt,dup);return false;}
-  d.items.push({name,amt,cat:selCat,rate:rateNow()});persist();render();
+  d.items.push({name,amt,cat:selCat,rate:rateNow(),t:nowHM()});persist();render();
   $("iName").value="";$("iAmt").value="";hideDup();return true;
 }
 let pending=null;
@@ -581,7 +562,7 @@ function askDetail(base,amt,dup){
   const same=allItems().filter(i=>norm(i.name)===key||norm(i.name).startsWith(key+" ")).length;
   $("dupMsg").textContent="«"+dup.name+"» вже є у Вашому списку (День "+dup.day+"). Уточніть, яка саме ця покупка, щоб вона була схожа на справжню.";
   const chips=$("dupChips");chips.textContent="";
-  ["№"+(same+1),"Київ","Львів","Одеса","біля моря","у горах","у Європі","нова модель"].forEach(t=>{const b=document.createElement("button");b.type="button";b.className="idea";b.textContent="+ "+t;b.onclick=()=>{const v=$("iDetail").value.trim();$("iDetail").value=v?v+", "+t:t;updPreview();$("iDetail").focus();};chips.append(b);});
+  ["№"+(same+1)].forEach(t=>{const b=document.createElement("button");b.type="button";b.className="idea";b.textContent="+ "+t;b.onclick=()=>{const v=$("iDetail").value.trim();$("iDetail").value=v?v+", "+t:t;updPreview();$("iDetail").focus();};chips.append(b);});
   $("iDetail").value="";$("dupBox").hidden=false;updPreview();$("iDetail").focus();
 }
 function updPreview(){if(pending)$("dupPreview").textContent=joinName(pending.base,$("iDetail").value)+" · "+both(pending.amt,rateNow());}
@@ -594,11 +575,18 @@ function confirmDup(){
   const full=joinName(pending.base,det),amt=pending.amt;
   const dup=allItems().find(i=>norm(i.name)===norm(full));
   if(dup){$("dupMsg").textContent="«"+dup.name+"» теж уже є (День "+dup.day+"). Додайте інше уточнення.";$("iDetail").select();return;}
-  cur().items.push({name:full,amt,cat:selCat,rate:rateNow()});persist();
+  cur().items.push({name:full,amt,cat:selCat,rate:rateNow(),t:nowHM()});persist();
   $("iName").value="";$("iAmt").value="";hideDup();render();
   toast(leftNow()===0n?"Оплачено. Рахунок на нулі!":"Оплачено: "+full);
 }
 $("iDetail").addEventListener("input",updPreview);
+// пробіли між розрядами під час введення: 20000 → 20 000
+$("iAmt").addEventListener("input",e=>{
+  const el=e.target;let v=el.value.replace(/[^\d.,]/g,"").replace(".",",");
+  const k=v.indexOf(",");let ip=k<0?v:v.slice(0,k),fp=k<0?"":v.slice(k+1).replace(/,/g,"").slice(0,2);
+  ip=ip.replace(/^0+(?=\d)/,"").replace(/\B(?=(\d{3})+(?!\d))/g," ");
+  el.value=ip+(k<0?"":","+fp);
+});
 $("dupOk").onclick=confirmDup;
 $("dupCancel").onclick=()=>{hideDup();$("iName").focus();};
 $("iName").addEventListener("input",()=>{if(pending)hideDup();});
@@ -606,8 +594,8 @@ $("addForm").addEventListener("submit",e=>{
   e.preventDefault();
   if(pending){confirmDup();return;}
   const name=$("iName").value.trim();
-  let amt=toCents($("iAmt").value,Number($("iUnit").value));
-  if(amt===null||amt<=0n){toast("Вкажіть суму покупки, наприклад 250 або 1,5");$("iAmt").focus();return;}
+  let amt=toCents($("iAmt").value,0);
+  if(amt===null||amt<=0n){toast("Вкажіть суму покупки, наприклад 20 000");$("iAmt").focus();return;}
   const left=leftNow();
   if($("iCur").value==="uah"){const r=BigInt(rateNow());amt=(amt*100n+r/2n)/r;if(amt<=0n){toast("Сума замала, менше 1 цента");return;}if(amt>left&&amt-left<=1n)amt=left;}
   if(amt>left){toast("На рахунку лише "+both(left,rateNow())+". Зменште суму або натисніть «Уся решта сюди».");return;}
