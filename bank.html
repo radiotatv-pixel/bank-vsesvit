@@ -1,0 +1,672 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Банк «Всесвіт»</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;600;700&family=Manrope:wght@400;500;600;700&display=swap">
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+body{margin:0}img{max-width:100%}[hidden]{display:none!important}
+.loading{position:fixed;inset:0;background:var(--bg);display:grid;place-items:center;z-index:20;text-align:center;padding:24px}
+.loading>div{display:flex;flex-direction:column;gap:12px;align-items:center;max-width:320px}
+.loading b{font-family:var(--f-display);font-weight:600;font-size:18px}
+.loading span{color:var(--muted)}
+.demo{font-size:12px;color:var(--muted);text-align:center;background:var(--surface-2);border-radius:10px;padding:8px 10px}
+/* Layout: one phone-width banking app column — header, card, actions, tabbed panels, bottom nav. Night-sky ink + warm gold foil. */
+:root{
+  --bg:#EEF0F5; --surface:#FFFFFF; --surface-2:#E4E7EF; --fg:#141A2E; --muted:#5D6580;
+  --line:#D5D9E4; --gold:#9A6B12; --gold-soft:#F3E6C8; --ink:#0F1426; --ink-2:#1D2546;
+  --good:#1F7A4D; --warn:#A65A0B; --on-gold:#1A1405;
+  --card-fg:#F4EBD6; --card-gold:#E2B85A;
+  --f-display:"Unbounded","Manrope",system-ui,sans-serif;
+  --f-body:"Manrope",system-ui,-apple-system,"Segoe UI",sans-serif;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0A0D1A; --surface:#131830; --surface-2:#1B2140; --fg:#ECEEF6; --muted:#9AA1BD;
+  --line:#272E52; --gold:#E2B85A; --gold-soft:#2C2614; --ink:#060812; --ink-2:#161C3A;
+  --good:#5CC58F; --warn:#F0A64A; --on-gold:#1A1405; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0A0D1A; --surface:#131830; --surface-2:#1B2140; --fg:#ECEEF6; --muted:#9AA1BD;
+  --line:#272E52; --gold:#E2B85A; --gold-soft:#2C2614; --ink:#060812; --ink-2:#161C3A;
+  --good:#5CC58F; --warn:#F0A64A; --on-gold:#1A1405; color-scheme:dark}
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:15px;line-height:1.45}
+.app{max-width:460px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:14px 110px;display:flex;flex-direction:column;gap:18px}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+.num{font-variant-numeric:tabular-nums}
+
+/* header */
+.top{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.brand{display:flex;align-items:center;gap:10px}
+.brand svg{width:34px;height:34px;flex:none}
+.brand b{font-family:var(--f-display);font-weight:600;font-size:15px;letter-spacing:.02em;display:block}
+.brand small{color:var(--muted);font-size:12px}
+.daypill{font-family:var(--f-display);font-size:12px;font-weight:600;padding:7px 12px;border-radius:999px;background:var(--gold-soft);color:var(--gold);white-space:nowrap}
+
+/* push notification */
+.push{display:flex;gap:12px;align-items:flex-start;background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:12px 14px;box-shadow:0 10px 30px -18px rgba(10,13,26,.5);animation:drop .5s ease-out}
+.push .ic{width:30px;height:30px;border-radius:8px;background:var(--ink);display:grid;place-items:center;flex:none}
+.push .ic svg{width:20px;height:20px}
+.push p{margin:0;font-size:14px;min-width:0}
+.push p strong{display:block;font-size:12px;color:var(--muted);font-weight:600;margin-bottom:2px}
+.push .x{margin-left:auto;background:none;border:0;color:var(--muted);font-size:20px;line-height:1;padding:0 2px}
+@keyframes drop{from{transform:translateY(-10px);opacity:.3}to{transform:none;opacity:1}}
+
+/* card */
+.card{position:relative;overflow:hidden;border-radius:24px;padding:22px 22px 20px;color:var(--card-fg);background:radial-gradient(120% 90% at 85% 0%,#2A3366 0%,transparent 55%),linear-gradient(160deg,#141B3C 0%,#070915 100%);min-height:210px;display:flex;flex-direction:column;gap:6px;box-shadow:0 24px 50px -28px rgba(7,9,21,.9)}
+.card canvas{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+.card>*:not(canvas){position:relative}
+.card .lbl{font-size:12px;letter-spacing:.08em;text-transform:uppercase;opacity:.75}
+.card .bal{font-family:var(--f-display);font-weight:600;font-size:clamp(26px,8vw,36px);line-height:1.1;color:#FFF7E3;word-break:break-all}
+.card .approx{font-size:13px;color:var(--card-gold);min-height:18px}
+.card .row{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;margin-top:auto;padding-top:14px;font-size:13px}
+.card .row span{opacity:.8}
+.card .chip{width:38px;height:28px;border-radius:6px;background:linear-gradient(135deg,#F1D58E,#B98A2E);opacity:.9}
+
+/* progress */
+.prog{display:flex;flex-direction:column;gap:8px}
+.prog .meta{display:flex;justify-content:space-between;font-size:13px;color:var(--muted)}
+.dots{display:grid;grid-template-columns:repeat(20,1fr);gap:3px}
+.dots i{aspect-ratio:1;border-radius:50%;background:var(--surface-2);max-width:100%}
+.dots i.done{background:var(--gold)}
+.dots i.now{background:transparent;box-shadow:inset 0 0 0 2px var(--gold)}
+
+/* panels */
+.panel{display:flex;flex-direction:column;gap:14px}
+h2{font-family:var(--f-display);font-weight:600;font-size:19px;margin:4px 0 0;text-wrap:balance}
+.sub{color:var(--muted);margin:-8px 0 0;font-size:14px}
+.box{background:var(--surface);border:1px solid var(--line);border-radius:20px;padding:16px;display:flex;flex-direction:column;gap:12px}
+label.f{display:flex;flex-direction:column;gap:6px;font-size:13px;color:var(--muted);font-weight:600}
+input[type=text],input[type=number],select{width:100%;background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:11px 12px;font-size:15px;min-width:0}
+.amt{display:grid;grid-template-columns:minmax(0,1fr) 92px 64px;gap:8px}
+.rate{display:flex;flex-direction:column;gap:10px}
+.rate .r{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px}
+.rateline{display:flex;justify-content:space-between;align-items:center;gap:10px;font-size:14px;color:var(--muted);flex-wrap:wrap}
+.rateline b{color:var(--fg)}
+.linkbtn{background:none;border:0;color:var(--gold);font-weight:700;padding:4px 0}
+.txr .sum small{display:block;font-weight:500;font-size:12px;color:var(--muted)}
+.stat em{display:block;font-style:normal;font-size:12px;color:var(--muted);margin-top:2px;overflow-wrap:anywhere}
+.cats{display:flex;flex-wrap:wrap;gap:6px}
+.cat{border:1px solid var(--line);background:var(--bg);border-radius:999px;padding:6px 11px;font-size:13px;display:inline-flex;align-items:center;gap:6px}
+.cat i{width:8px;height:8px;border-radius:50%;display:inline-block}
+.cat[aria-pressed="true"]{border-color:var(--gold);background:var(--gold-soft);color:var(--fg);font-weight:600}
+.btns{display:flex;gap:8px;flex-wrap:wrap}
+.btn{border:0;border-radius:14px;padding:12px 16px;font-weight:700;font-size:15px;background:var(--gold);color:var(--on-gold);flex:1}
+.btn.ghost{background:var(--surface-2);color:var(--fg);font-weight:600}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.ideas{display:flex;flex-wrap:wrap;gap:6px}
+.idea{border:1px dashed var(--line);background:none;border-radius:10px;padding:5px 9px;font-size:13px;color:var(--muted)}
+.idea:hover{color:var(--fg);border-color:var(--gold)}
+
+/* transactions */
+.tx{display:flex;flex-direction:column}
+.txr{display:grid;grid-template-columns:36px minmax(0,1fr) auto auto;gap:10px;align-items:center;padding:10px 0;border-top:1px solid var(--line)}
+.txr:first-child{border-top:0}
+.txr .av{width:36px;height:36px;border-radius:12px;display:grid;place-items:center;font-family:var(--f-display);font-size:13px;font-weight:600;color:#fff}
+.txr .nm{min-width:0}
+.txr .nm b{display:block;font-weight:600;overflow-wrap:anywhere}
+.txr .nm small{color:var(--muted);font-size:12px}
+.txr .sum{font-weight:700;text-align:right;white-space:nowrap}
+.txr .no{color:var(--muted);font-size:12px;font-weight:600}
+.rule{display:flex;gap:10px;align-items:flex-start;font-size:13px;color:var(--muted);background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:10px 12px}
+.rule b{color:var(--fg)}
+.alert{background:var(--gold-soft);border-radius:16px;padding:12px 14px;font-size:14px;display:flex;gap:10px;align-items:flex-start}
+.alert button{margin-left:auto;background:none;border:0;color:var(--muted);font-size:20px;line-height:1}
+.tip{display:flex;flex-direction:column;gap:4px;background:var(--gold-soft);border-radius:16px;padding:12px 14px;font-size:15px;font-weight:600}
+.tip small{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--gold);font-weight:700}
+.hint{font-size:13px;color:var(--warn);font-weight:600;text-align:center}
+.dup{display:flex;flex-direction:column;gap:10px;background:var(--gold-soft);border-radius:16px;padding:14px;animation:drop .3s ease-out}
+.dup p{margin:0;font-size:14px}
+.dup .pre{font-size:13px;color:var(--muted)}
+.dup .pre b{color:var(--fg)}
+.txr .del{background:none;border:0;color:var(--muted);font-size:18px;padding:4px}
+.empty{color:var(--muted);font-size:14px;padding:6px 0}
+.left{display:flex;justify-content:space-between;gap:10px;font-size:14px;padding-top:10px;border-top:1px solid var(--line)}
+.left b.ok{color:var(--good)} .left b.warn{color:var(--warn)}
+.closed{display:flex;flex-direction:column;gap:6px;align-items:flex-start;background:var(--gold-soft);border-radius:16px;padding:14px}
+.closed b{font-family:var(--f-display);font-weight:600;font-size:15px}
+
+/* statement */
+details.day{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:12px 14px}
+details.day summary{display:flex;justify-content:space-between;gap:10px;cursor:pointer;list-style:none;font-weight:600}
+details.day summary::-webkit-details-marker{display:none}
+details.day summary small{color:var(--muted);font-weight:500;display:block;font-size:12px}
+details.day .tx{margin-top:8px}
+
+/* analytics */
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.stat{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:14px;min-width:0}
+.stat small{color:var(--muted);font-size:12px;display:block}
+.stat b{font-family:var(--f-display);font-weight:600;font-size:17px;overflow-wrap:anywhere}
+.bars{display:flex;flex-direction:column;gap:10px}
+.bar .h{display:flex;justify-content:space-between;font-size:13px;gap:8px}
+.bar .t{height:10px;border-radius:6px;background:var(--surface-2);overflow:hidden;margin-top:5px}
+.bar .t i{display:block;height:100%;border-radius:6px}
+
+/* settings */
+.opt{display:flex;gap:12px;align-items:flex-start;padding:10px 0;border-top:1px solid var(--line)}
+.opt:first-of-type{border-top:0}
+.opt input{margin-top:4px;accent-color:var(--gold)}
+.opt small{display:block;color:var(--muted);font-size:13px}
+.confirm{background:var(--surface-2);border-radius:14px;padding:12px;display:flex;flex-direction:column;gap:10px}
+.note{font-size:12px;color:var(--muted);text-align:center;margin:6px 0 0}
+
+/* bottom nav */
+nav.tabs{position:fixed;left:0;right:0;bottom:0;background:var(--surface);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom,0px);padding-left:env(safe-area-inset-left,0px);padding-right:env(safe-area-inset-right,0px);z-index:5}
+nav.tabs .in{max-width:460px;margin:0 auto;display:grid;grid-template-columns:repeat(4,1fr)}
+nav.tabs button{background:none;border:0;padding:10px 4px 12px;font-size:11px;font-weight:600;color:var(--muted);display:flex;flex-direction:column;align-items:center;gap:4px}
+nav.tabs button svg{width:22px;height:22px}
+nav.tabs button[aria-selected="true"]{color:var(--gold)}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(84px + env(safe-area-inset-bottom,0px));background:var(--ink-2);color:#F4EBD6;padding:10px 16px;border-radius:12px;font-size:14px;z-index:6;max-width:calc(100% - 32px)}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+
+
+<div class="loading" id="loading"><div><b>Банк «Всесвіт»</b><span id="loadTxt">Відкриваємо Ваш рахунок…</span><button class="btn" id="retry" type="button" hidden>Спробувати ще раз</button></div></div>
+<div class="app">
+  <div class="demo" id="demo" hidden>Демо-режим: сторінку відкрито не з Телеграму. Дані зберігаються лише в цьому браузері, оплати немає.</div>
+  <header class="top">
+    <div class="brand">
+      <svg viewBox="0 0 40 40" aria-hidden="true"><circle cx="20" cy="20" r="19" fill="#0F1426"/><ellipse cx="20" cy="20" rx="15" ry="6" fill="none" stroke="#E2B85A" stroke-width="1.6" transform="rotate(-25 20 20)"/><circle cx="20" cy="20" r="5.5" fill="#E2B85A"/><circle cx="32" cy="14" r="1.6" fill="#F4EBD6"/></svg>
+      <div><b>Банк «Всесвіт»</b><small id="hello">Вітаємо!</small></div>
+    </div>
+    <span class="daypill num" id="daypill">День 1 / 40</span>
+  </header>
+
+  <div class="box" id="welcome" hidden>
+    <b style="font-family:var(--f-display);font-weight:600;font-size:16px">Ласкаво просимо до Банку «Всесвіт»</b>
+    <span style="font-size:14px;color:var(--muted)">Як до Вас звертатися?</span>
+    <div class="cats" id="welcomeTitle"><button type="button" class="cat" data-t="пані" aria-pressed="false">Пані</button><button type="button" class="cat" data-t="пан" aria-pressed="false">Пан</button></div>
+    <label class="f" for="wName">Ім'я у кличному відмінку
+      <input type="text" id="wName" placeholder="Наприклад: Олено, Андрію" maxlength="30">
+    </label>
+    <button class="btn" type="button" id="welcomeSave">Зберегти</button>
+  </div>
+
+  <div class="alert" id="notice" hidden><span id="noticeText"></span><button id="noticeX" aria-label="Закрити">×</button></div>
+
+  <div class="push" id="push" hidden>
+    <div class="ic"><svg viewBox="0 0 40 40" aria-hidden="true"><ellipse cx="20" cy="20" rx="15" ry="6" fill="none" stroke="#E2B85A" stroke-width="2.4" transform="rotate(-25 20 20)"/><circle cx="20" cy="20" r="6" fill="#E2B85A"/></svg></div>
+    <p><strong>Банк «Всесвіт» · щойно</strong><span id="pushText"></span></p>
+    <button class="x" id="pushX" aria-label="Закрити сповіщення">×</button>
+  </div>
+
+  <!-- HOME -->
+  <section class="panel" id="p-home">
+    <div class="card" aria-label="Вселенський рахунок">
+      <canvas id="stars"></canvas>
+      <span class="lbl">Вселенський рахунок · залишок</span>
+      <span class="bal num" id="bal">1 000 $</span>
+      <span class="approx" id="approx"></span>
+      <div class="row">
+        <div><span>Зараховано сьогодні</span><br><b class="num" id="credited">1 000 $</b></div>
+        <div class="chip" aria-hidden="true"></div>
+      </div>
+    </div>
+
+    <div class="prog">
+      <div class="meta"><span>Шлях достатку</span><span class="num" id="progTxt">0 з 40 днів</span></div>
+      <div class="dots" id="dots"></div>
+    </div>
+
+    <div id="todayOpen" class="panel">
+      <h2 id="leftHead">У Вас є 1 000 $. Купуйте все, що бажаєте</h2>
+      <p class="sub">День закривається, коли на рахунку залишається рівно 0.</p>
+      <div class="tip"><small>Підказка дня</small><span id="tipText"></span></div>
+      <div class="box rate" id="rateAsk" hidden>
+        <b style="font-size:15px">Який сьогодні курс долара?</b>
+        <span style="font-size:13px;color:var(--muted)" id="rateHint">Подивіться курс у своєму банку і впишіть його. Після цього всі суми будуть видні і в доларах, і в гривнях.</span>
+        <div class="r">
+          <label class="f" for="iRate" style="margin:0">1 $ =
+            <input type="text" id="iRate" placeholder="Наприклад: 41,50" inputmode="decimal" maxlength="8">
+          </label>
+          <button class="btn" type="button" id="rateOk" style="align-self:end">Підтвердити</button>
+        </div>
+      </div>
+      <div class="rateline" id="rateLine" hidden><span>Курс дня: <b id="rateTxt"></b></span><button class="linkbtn" type="button" id="rateEdit">Змінити курс</button></div>
+      <form class="box" id="addForm" autocomplete="off">
+        <label class="f" for="iName">Покупка
+          <input type="text" id="iName" placeholder="Наприклад: будинок біля моря" maxlength="80">
+        </label>
+        <div class="dup" id="dupBox" hidden>
+          <p id="dupMsg"></p>
+          <label class="f" for="iDetail">Уточнення: місто, вулиця, модель або номер
+            <input type="text" id="iDetail" placeholder="Наприклад: Львів, вул. Личаківська" maxlength="60">
+          </label>
+          <div class="ideas" id="dupChips"></div>
+          <span class="pre">У виписці буде: <b id="dupPreview"></b></span>
+          <div class="btns">
+            <button class="btn" type="button" id="dupOk">Купити з уточненням</button>
+            <button class="btn ghost" type="button" id="dupCancel">Скасувати</button>
+          </div>
+        </div>
+        <label class="f" for="iAmt">Сума
+          <span class="amt">
+            <input type="text" id="iAmt" placeholder="0" inputmode="decimal">
+            <select id="iUnit" aria-label="Множник суми">
+              <option value="0">—</option>
+              <option value="3">тис.</option>
+              <option value="6">млн</option>
+              <option value="9">млрд</option>
+              <option value="12">трлн</option>
+              <option value="15">квадрлн</option>
+            </select>
+            <select id="iCur" aria-label="Валюта">
+              <option value="usd">$</option>
+              <option value="uah">₴</option>
+            </select>
+          </span>
+        </label>
+        <div class="f" style="font-size:13px;color:var(--muted);font-weight:600">Категорія
+          <div class="cats" id="cats" style="margin-top:6px"></div>
+        </div>
+        <div class="btns">
+          <button class="btn" type="submit">Купити</button>
+          <button class="btn ghost" type="button" id="allBtn">Уся решта сюди</button>
+        </div>
+        <div class="ideas" id="ideas" aria-label="Ідеї"></div>
+      </form>
+
+      <div class="box">
+        <div class="tx" id="todayTx"></div>
+        <div class="left"><span>Залишок на рахунку</span><b class="num" id="leftTxt">1 000 $</b></div>
+        <button class="btn" id="closeDay" disabled>Закрити день</button>
+        <span class="hint" id="closeHint"></span>
+      </div>
+
+      <div class="rule"><span><b>Правила.</b> Кожна покупка лише один раз за всю гру. Якщо пропустити 2 дні поспіль, шлях почнеться з першого дня.</span></div>
+    </div>
+
+    <div class="box" id="paywall" hidden>
+      <b style="font-family:var(--f-display);font-weight:600;font-size:16px">Безкоштовні дні завершено</b>
+      <span id="payText" style="font-size:14px;color:var(--muted)"></span>
+      <button class="btn" type="button" id="payBtn">Оплатити участь</button>
+      <button class="btn ghost" type="button" id="payCheck">Оплату здійснено, перевірити</button>
+    </div>
+
+    <div id="todayClosed" class="closed" hidden>
+      <b id="closedHead">День закрито. Рахунок на нулі.</b>
+      <span id="closedTxt"></span>
+      <span style="font-size:13px;color:var(--muted)" id="closedNext">Наступне зарахування прийде завтра.</span>
+    </div>
+  </section>
+
+  <!-- PURCHASES -->
+  <section class="panel" id="p-hist" hidden>
+    <h2>Мої покупки</h2>
+    <p class="sub" id="histSub">Усе, що Ви придбали за цей шлях.</p>
+    <div class="panel" id="histList"></div>
+  </section>
+
+  <!-- ANALYTICS -->
+  <section class="panel" id="p-stats" hidden>
+    <h2>Аналітика</h2>
+    <p class="sub">Куди тече Ваш грошовий потік.</p>
+    <div class="stats">
+      <div class="stat"><small>Витрачено загалом</small><b class="num" id="sTotal">0 $</b><em class="num" id="sTotalU"></em></div>
+      <div class="stat"><small>Покупок</small><b class="num" id="sCount">0</b></div>
+      <div class="stat"><small>Закритих днів</small><b class="num" id="sDays">0</b></div>
+      <div class="stat"><small>Найбільша покупка</small><b class="num" id="sMax">—</b></div>
+    </div>
+    <div class="box"><div class="bars" id="bars"></div></div>
+  </section>
+
+  <!-- SETTINGS -->
+  <section class="panel" id="p-set" hidden>
+    <h2>Налаштування</h2>
+    <div class="box">
+      <b style="font-size:14px">Як до Вас звертатися</b>
+      <div class="cats" id="titleSet"><button type="button" class="cat" data-t="пані" aria-pressed="false">Пані</button><button type="button" class="cat" data-t="пан" aria-pressed="false">Пан</button></div>
+      <label class="f" for="iUser">Ім'я у кличному відмінку
+        <input type="text" id="iUser" placeholder="Наприклад: Олено, Андрію" maxlength="30">
+      </label>
+    </div>
+    <div class="box">
+      <b style="font-size:14px">Як нараховуються кошти</b>
+      <span style="font-size:14px;color:var(--muted)">Перший день 1 000 $, далі щодня сума подвоюється: 2 000 $, 4 000 $, 8 000 $… Мільйон доларів приходить на 11-й день, мільярд на 21-й, трильйон на 31-й, а на 40-й день майже 550 трильйонів доларів, тобто всі гроші світу. Курс долара Ви щодня вписуєте самі, і банк показує суми ще й у гривнях.</span>
+    </div>
+    <div class="box">
+      <button class="btn ghost" id="resetAsk">Почати шлях заново</button>
+      <div class="confirm" id="resetBox" hidden>
+        <span>Усі покупки зникнуть, і шлях почнеться з першого дня. Продовжити?</span>
+        <div class="btns"><button class="btn" id="resetYes">Так, почати заново</button><button class="btn ghost" id="resetNo">Скасувати</button></div>
+      </div>
+    </div>
+    <p class="note">Банк «Всесвіт» — гра для уяви. Усі кошти віртуальні, реальних платежів немає.</p>
+  </section>
+</div>
+
+<nav class="tabs" aria-label="Розділи">
+  <div class="in" role="tablist">
+    <button role="tab" data-p="home" aria-selected="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="6" width="18" height="12" rx="3"/><path d="M3 10h18"/></svg>Рахунок</button>
+    <button role="tab" data-p="hist" aria-selected="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6"/></svg>Покупки</button>
+    <button role="tab" data-p="stats" aria-selected="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>Аналітика</button>
+    <button role="tab" data-p="set" aria-selected="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1 7 17M17 7l2.1-2.1"/></svg>Налаштування</button>
+  </div>
+</nav>
+<div class="toast" id="toast" hidden></div>
+
+<script>
+(function(){
+const DAYS=40;
+const PROMPTS=["Купіть щось маленьке, але таке, що давно відкладали «на потім».", "Купіть річ, яку колись бачили у вітрині й пройшли повз.", "Сьогодні все для тіла: догляд, одяг, приємні відчуття.", "Подаруйте близькій людині те, чого їй по-справжньому хочеться.", "Купіть собі досвід, а не річ: подорож, концерт, враження.", "Замініть те, чим користуєтеся щодня, на найкраще, що існує.", "Купіть щось, що здається «занадто дорогим для мене». Помічайте, що відчуваєте.", "Вкладіть у себе: навчання, наставники, книги, які Вас розширять.", "Облаштуйте ідеальний простір для роботи й відпочинку.", "Закрийте фінансові питання своєї родини, щоб ніхто ні про що не хвилювався.", "Перший мільйон! Купіть житло, про яке мрієте.", "Купіть собі час: помічників, сервіси, усе, що звільнить від рутини.", "Подарунки для всієї родини. Кожному те, про що він мовчки мріє.", "Автомобіль мрії. Або кілька, під різний настрій.", "Інвестуйте в те, що приноситиме дохід: нерухомість, частки в бізнесі.", "Створіть власну справу мрії: офіс, команда, бренд.", "Подорож навколо світу з найкращими готелями.", "Будинок у місці, де Ви завжди хотіли жити.", "Купіть те, про що колись було соромно навіть мріяти.", "Що б Ви зробили, якби гроші більше ніколи не були питанням? Купіть це.", "Перший мільярд! Купіть компанію, якою захоплюєтеся.", "Острів або власний курорт.", "Створіть центр, школу чи простір у своїй сфері, яким пишатиметеся.", "Колекція: мистецтво, коштовності, усе, що милує око.", "Свій бренд, відомий у всьому світі.", "Власна студія, журнал або медіа.", "Купіть цілий квартал і зробіть його ідеальним для життя.", "Інвестуйте в технології майбутнього.", "Власна авіакомпанія або флот яхт.", "Опишіть і купіть життя, у якому у Вас є все.", "Трильйон! Купіть найбільшу компанію світу. Або кілька.", "Збудуйте місто своєї мрії з нуля.", "Космос: власна ракета, станція, політ до зірок.", "Купіть усе, що колись хотіли, але заборонили собі.", "Забезпечте на все життя кожного, кого любите.", "Купіть цілу галузь: моду, кіно, туризм, що відгукується.", "Що б Ви змінили у світі, якби могли купити будь-що? Купіть це.", "Купіть усе, що бачите навколо себе прямо зараз.", "Майже всі гроші світу. Дозвольте собі найсміливіше бажання.", "Фінал: усі гроші світу Ваші. Витратьте їх так, як людина, що точно знає: вона заслуговує на все."];
+const CATS=[
+  {id:"self",n:"Для себе",c:"#B9852B"},
+  {id:"home",n:"Дім",c:"#3E6FB0"},
+  {id:"love",n:"Близьким",c:"#C0507A"},
+  {id:"travel",n:"Подорожі",c:"#2B9A8E"},
+  {id:"learn",n:"Навчання",c:"#7A5CC0"},
+  {id:"invest",n:"Інвестиції",c:"#2F4A7A"},
+  {id:"dream",n:"Мрія",c:"#D0683A"}
+];
+const IDEAS=["Спа-день","Новий гардероб","Квартира мамі","Подорож на Балі","Курс у найкращого вчителя","Власний центр","Яхта","Будинок у горах","Острів","Приватний літак"];
+
+// ---------- money in cents (BigInt), exact to the kopeck ----------
+function credit(n){return 100000n*(2n**BigInt(n-1));}
+const nf=new Intl.NumberFormat("uk-UA",{maximumFractionDigits:0});
+const nf1=new Intl.NumberFormat("uk-UA",{maximumFractionDigits:1});
+const SCALE=[[1e27,"октильйонів"],[1e24,"септильйонів"],[1e21,"секстильйонів"],[1e18,"квінтильйонів"],[1e15,"квадрильйонів"],[1e12,"трлн"],[1e9,"млрд"],[1e6,"млн"],[1e3,"тис."]];
+function compact(c,sg="$"){const v=Number(c)/100;for(const [s,w] of SCALE){if(v>=s)return nf1.format(v/s)+" "+w+" "+sg;}return nf.format(v)+" "+sg;}
+function money(c,sg="$"){const d=c/100n,r=c%100n;return nf.format(d)+(r>0n?","+String(r).padStart(2,"0"):"")+" "+sg;}
+function short(c,sg="$"){return c>=100000000000000000n?"≈ "+compact(c,sg):money(c,sg);}
+// rate = kopecks per 1 $ (41,50 ₴ → 4150)
+function toUah(c,rate){return c*BigInt(rate)/100n;}
+function uah(c,rate){return rate?short(toUah(c,rate),"₴"):"";}
+function both(c,rate){return rate?short(c)+" ("+uah(c,rate)+")":short(c);}
+function rateStr(r){return (r/100).toFixed(2).replace(".",",")+" ₴";} // full digits up to 1 квадрлн
+function toCents(str,pow){
+  str=String(str).replace(/[\s ]/g,"").replace(",",".");
+  if(!/^\d+(\.\d+)?$/.test(str))return null;
+  const [i,f=""]=str.split(".");const sc=pow+2;
+  return BigInt(i+(f+"0".repeat(sc)).slice(0,sc));
+}
+function norm(s){return s.toLowerCase().replace(/ё/g,"е").replace(/[^\p{L}\p{N}]+/gu," ").trim();}
+
+// ---------- dates ----------
+function today(){const d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");}
+function gap(a,b){const p=x=>{const [y,m,d]=x.split("-").map(Number);return Date.UTC(y,m-1,d);};return Math.round((p(b)-p(a))/86400000);}
+
+function fresh(){return {v:3,title:"",name:"",day:1,lastDone:null,days:{"1":{items:[],closed:false}},seenPush:0,notice:""};}
+let S=fresh();
+let selCat="self";
+// ---------- connection to the bank (Google Apps Script) ----------
+const API="https://script.google.com/macros/s/AKfycbzr4qI1ZUmyG1blkchWGLBucGGrq2W2QUx3RBbUJUvIB1Z4XRLUUmX0pFiY92QIEN_Vbw/exec";
+const TG=window.Telegram&&window.Telegram.WebApp;
+const INIT=(TG&&TG.initData)||"";
+const DEMO=!INIT;
+let SRV={paid:false,paidAt:"",freeDays:3,price:0,invoiceUrl:"",nbuRate:0};
+const LS="vsesvit-tg-"+((TG&&TG.initDataUnsafe&&TG.initDataUnsafe.user&&TG.initDataUnsafe.user.id)||"demo");
+
+function pack(s){return JSON.stringify(s,(k,v)=>typeof v==="bigint"?{$c:v.toString()}:v);}
+function unpack(t){return JSON.parse(t,(k,v)=>v&&typeof v==="object"&&typeof v.$c==="string"?BigInt(v.$c):v);}
+function lsLoad(){try{const r=localStorage.getItem(LS);return r?unpack(r):null;}catch(e){return null;}}
+function lsSave(){try{localStorage.setItem(LS,pack(S));}catch(e){}}
+let saveT=null;
+function persist(){lsSave();if(DEMO)return;clearTimeout(saveT);saveT=setTimeout(pushState,600);}
+function pushState(){
+  if(DEMO)return;
+  fetch(API,{method:"POST",body:JSON.stringify({type:"save",initData:INIT,state:pack(S)})}).catch(()=>{});
+}
+function jsonp(params){
+  return new Promise((res,rej)=>{
+    const cb="vsv"+Date.now()+Math.floor(Math.random()*1e5);
+    const sc=document.createElement("script");
+    const t=setTimeout(()=>{done();rej(new Error("timeout"));},20000);
+    function done(){clearTimeout(t);try{delete window[cb];}catch(e){window[cb]=undefined;}sc.remove();}
+    window[cb]=d=>{done();res(d);};
+    sc.onerror=()=>{done();rej(new Error("network"));};
+    sc.src=API+"?"+new URLSearchParams(Object.assign({},params,{callback:cb})).toString();
+    document.head.appendChild(sc);
+  });
+}
+async function connect(){
+  if(DEMO){$("demo").hidden=false;$("loading").hidden=true;return;}
+  $("loading").hidden=false;$("retry").hidden=true;$("loadTxt").textContent="Відкриваємо Ваш рахунок…";
+  try{
+    const r=await jsonp({action:"load",initData:INIT});
+    if(!r||!r.ok)throw new Error((r&&r.error)||"error");
+    SRV=Object.assign(SRV,r);
+    let fromServer=null;
+    if(r.state){try{fromServer=unpack(r.state);}catch(e){}}
+    if(fromServer&&fromServer.days)S=fromServer;
+    sync();lsSave();render();
+    if(!fromServer)pushState();
+    $("loading").hidden=true;
+  }catch(e){
+    $("loadTxt").textContent="Не вдалося з'єднатися з банком. Перевірте інтернет і спробуйте ще раз.";
+    $("retry").hidden=false;
+  }
+}
+
+// ---------- day rules ----------
+function cur(){return S.days[String(S.day)];}
+function rateNow(){return cur().rate||0;}
+function spent(d){return d.items.reduce((a,i)=>a+i.amt,0n);}
+function leftNow(){return credit(S.day)-spent(cur());}
+function allItems(){return Object.keys(S.days).map(Number).sort((a,b)=>a-b).flatMap(k=>S.days[String(k)].items.map(it=>({...it,day:k})));}
+function addDays(x,n){const [y,m,d]=x.split("-").map(Number);const t=new Date(Date.UTC(y,m-1,d+n));return t.getUTCFullYear()+"-"+String(t.getUTCMonth()+1).padStart(2,"0")+"-"+String(t.getUTCDate()).padStart(2,"0");}
+function locked(){return !DEMO&&!SRV.paid&&S.day>=SRV.freeDays&&cur().closed&&S.day<DAYS;}
+function effLast(){
+  // after payment the path continues from the payment day, so days spent waiting for payment don't count as missed
+  let l=S.lastDone;
+  if(l&&SRV.paid&&SRV.paidAt&&l<SRV.paidAt){const p=addDays(SRV.paidAt,-1);if(p>l)l=p;}
+  return l;
+}
+function sync(){
+  if(locked())return;
+  const last=effLast();
+  if(!last)return;
+  const g=gap(last,today());
+  if(g>=3){const name=S.name,t=S.title;S=fresh();S.name=name;S.title=t;S.notice="Було пропущено 2 дні поспіль, тому шлях почався спочатку. Сьогодні знову День 1 і 1 000 $ на Вашому рахунку.";persist();return;}
+  if(cur().closed&&g>=1&&S.day<DAYS){S.day+=1;S.days[String(S.day)]={items:[],closed:false};persist();}
+}
+
+// ---------- UI ----------
+const $=id=>document.getElementById(id);
+function toast(t){const el=$("toast");el.textContent=t;el.hidden=false;clearTimeout(toast._t);toast._t=setTimeout(()=>el.hidden=true,2600);}
+function catOf(id){return CATS.find(c=>c.id===id)||CATS[0];}
+function addr(){return [S.title,S.name].filter(Boolean).join(" ");}
+function cap(t){return t?t[0].toUpperCase()+t.slice(1):t;}
+function greet(){return addr()?"Вітаємо, "+addr()+"!":"Вітаємо!";}
+function plural(n,a,b,c){const m10=n%10,m100=n%100;if(m10===1&&m100!==11)return a;if(m10>=2&&m10<=4&&(m100<12||m100>14))return b;return c;}
+function txRow(it,sub,onDel){
+  const c=catOf(it.cat);
+  const row=document.createElement("div");row.className="txr";
+  const av=document.createElement("div");av.className="av";av.style.background=c.c;av.textContent=c.n[0];
+  const nm=document.createElement("div");nm.className="nm";
+  const b=document.createElement("b");b.textContent=it.name;const sm=document.createElement("small");sm.textContent=sub;nm.append(b,sm);
+  const sum=document.createElement("div");sum.className="sum num";sum.textContent="−"+short(it.amt);if(it.rate){const u=document.createElement("small");u.textContent=uah(it.amt,it.rate);sum.append(u);}
+  row.append(av,nm,sum);
+  if(onDel){const x=document.createElement("button");x.className="del";x.setAttribute("aria-label","Скасувати покупку "+it.name);x.textContent="×";x.onclick=onDel;row.append(x);}
+  else row.append(document.createElement("span"));
+  return row;
+}
+function render(){
+  const d=cur(),cr=credit(S.day),left=cr-spent(d);
+  $("hello").textContent=greet();
+  document.querySelectorAll("#titleSet .cat,#welcomeTitle .cat").forEach(b=>b.setAttribute("aria-pressed",b.dataset.t===S.title));
+  $("welcome").hidden=!!S.welcomed;
+  $("daypill").textContent="День "+S.day+" / "+DAYS;
+  const rt=d.rate||0;
+  $("bal").textContent=money(left);
+  $("approx").textContent=rt?"≈ "+(toUah(left,rt)>=100000000n?compact(toUah(left,rt),"₴"):money(toUah(left,rt),"₴"))+" за курсом "+rateStr(rt):(left>=100000000n?"≈ "+compact(left):"");
+  $("credited").textContent=short(cr);
+  $("rateAsk").hidden=!!rt||d.closed;$("rateLine").hidden=!rt||d.closed;$("addForm").hidden=!rt;
+  if(rt)$("rateTxt").textContent="1 $ = "+rateStr(rt);
+  const sugg=SRV.nbuRate||S.lastRate||0;
+  if(!rt&&document.activeElement!==$("iRate"))$("iRate").value=sugg?(sugg/100).toFixed(2).replace(".",","):"";
+  $("rateHint").textContent=SRV.nbuRate?"Офіційний курс НБУ на сьогодні вже вписано. Підтвердіть його або впишіть курс свого банку.":"Подивіться курс у своєму банку і впишіть його. Після цього всі суми будуть видні і в доларах, і в гривнях.";
+  $("notice").hidden=!S.notice;$("noticeText").textContent=S.notice||"";
+  const closedN=Object.values(S.days).filter(x=>x.closed).length;
+  $("progTxt").textContent=closedN+" з "+DAYS+" днів";
+  const dots=$("dots");dots.textContent="";
+  for(let i=1;i<=DAYS;i++){const e=document.createElement("i");const x=S.days[String(i)];if(x&&x.closed)e.className="done";else if(i===S.day)e.className="now";dots.append(e);}
+  $("todayOpen").hidden=d.closed;$("todayClosed").hidden=!d.closed;
+  const lk=locked();$("paywall").hidden=!lk;
+  if(lk){$("payText").textContent="Ви пройшли перші "+SRV.freeDays+" "+plural(SRV.freeDays,"день","дні","днів")+". Щоб продовжити шлях до всіх грошей світу, оплатіть участь: "+nf.format(SRV.price)+" ₴ за всі "+DAYS+" днів. Після оплати наступний день відкриється автоматично.";}
+  if(d.closed){
+    $("closedTxt").textContent="Сьогодні Ви витратили "+both(cr,rt)+" на "+d.items.length+" "+plural(d.items.length,"покупку","покупки","покупок")+".";
+    const fin=S.day>=DAYS;
+    $("closedHead").textContent=fin?("Усі гроші світу Ваші"+(addr()?", "+addr():"")+"! 40 днів пройдено."):"День закрито. Рахунок на нулі.";
+    if(lk)$("closedNext").textContent="Наступний день відкриється після оплати участі.";
+    else $("closedNext").textContent=fin?"Подивіться в розділі «Покупки», скільки всього Ви дозволили собі за цей шлях.":"Наступне зарахування, "+short(credit(S.day+1))+", прийде завтра.";
+  }
+  $("tipText").textContent=PROMPTS[S.day-1]||"";
+  $("leftHead").textContent=left===0n?"Усе витрачено. Можна закривати день":(addr()?cap(addr())+", у Вас є ":"У Вас є ")+both(left,rt)+". Купуйте все, що бажаєте";
+  const tx=$("todayTx");tx.textContent="";
+  if(!d.items.length){const e=document.createElement("div");e.className="empty";e.textContent="Поки жодної покупки. Почніть з того, чого хочеться найбільше.";tx.append(e);}
+  d.items.forEach((it,i)=>tx.append(txRow(it,catOf(it.cat).n,()=>{d.items.splice(i,1);persist();render();})));
+  const lt=$("leftTxt");lt.textContent=money(left)+(rt?" · "+uah(left,rt):"");lt.className="num "+(left===0n?"ok":"warn");
+  $("closeDay").disabled=left!==0n;
+  $("closeHint").textContent=left===0n?"":"Щоб закрити день, витратьте ще "+both(left,rt)+".";
+  $("allBtn").disabled=left<=0n;
+  if(S.seenPush<S.day&&!d.closed){$("pushText").textContent=(addr()?cap(addr())+", на":"На")+" Ваш рахунок зараховано "+short(cr)+" всесвітніх коштів. "+(rt?"Що сьогодні купуємо?":"Який сьогодні курс долара?");$("push").hidden=false;}
+  else $("push").hidden=true;
+  renderHist();renderStats();
+  if(document.activeElement!==$("iUser"))$("iUser").value=S.name||"";
+}
+function renderHist(){
+  const box=$("histList");box.textContent="";
+  const all=allItems();
+  $("histSub").textContent=all.length?all.length+" "+plural(all.length,"покупка","покупки","покупок")+" за цей шлях. Кожна лише один раз.":"Усе, що Ви придбали за цей шлях.";
+  if(!all.length){const e=document.createElement("p");e.className="empty";e.textContent="Список порожній. Ваші покупки з'являться тут.";box.append(e);return;}
+  const wrap=document.createElement("div");wrap.className="box";const tx=document.createElement("div");tx.className="tx";
+  all.slice().reverse().forEach((it,idx)=>tx.append(txRow(it,"№"+(all.length-idx)+" · День "+it.day+" · "+catOf(it.cat).n,null)));
+  wrap.append(tx);box.append(wrap);
+}
+function renderStats(){
+  const all=allItems();
+  const total=all.reduce((a,i)=>a+i.amt,0n);
+  $("sTotal").textContent=total?compact(total):"0 $";
+  const tu=all.reduce((a,i)=>a+(i.rate?toUah(i.amt,i.rate):0n),0n);$("sTotalU").textContent=tu?"≈ "+compact(tu,"₴"):"";
+  $("sCount").textContent=nf.format(all.length);
+  $("sDays").textContent=Object.values(S.days).filter(x=>x.closed).length;
+  const mx=all.reduce((m,i)=>!m||i.amt>m.amt?i:m,null);
+  $("sMax").textContent=mx?compact(mx.amt):"—";
+  const by={};all.forEach(i=>by[i.cat]=(by[i.cat]||0n)+i.amt);
+  const bars=$("bars");bars.textContent="";
+  if(!total){const e=document.createElement("p");e.className="empty";e.textContent="Тут буде видно, на що Ви витрачаєте найбільше: на себе, на близьких чи на мрію.";bars.append(e);return;}
+  CATS.slice().sort((a,b)=>{const x=by[a.id]||0n,y=by[b.id]||0n;return y>x?1:y<x?-1:0;}).forEach(c=>{
+    const v=by[c.id]||0n;const pct=Number(v*10000n/total)/100;
+    const w=document.createElement("div");w.className="bar";
+    w.innerHTML='<div class="h"><span></span><span class="num"></span></div><div class="t"><i></i></div>';
+    w.querySelector(".h span").textContent=c.n;w.querySelector(".h .num").textContent=Math.round(pct)+"%";
+    const i=w.querySelector(".t i");i.style.width=pct+"%";i.style.background=c.c;bars.append(w);});
+}
+CATS.forEach(c=>{const b=document.createElement("button");b.type="button";b.className="cat";b.setAttribute("aria-pressed",c.id===selCat);b.innerHTML='<i></i><span></span>';b.querySelector("i").style.background=c.c;b.querySelector("span").textContent=c.n;
+  b.onclick=()=>{selCat=c.id;document.querySelectorAll(".cat").forEach(x=>x.setAttribute("aria-pressed",x===b));};$("cats").append(b);});
+IDEAS.forEach(t=>{const b=document.createElement("button");b.type="button";b.className="idea";b.textContent="+ "+t;b.onclick=()=>{$("iName").value=t;$("iAmt").focus();};$("ideas").append(b);});
+
+function tryAdd(name,amt){
+  const d=cur();if(d.closed)return false;
+  if(!name){toast("Напишіть, що Ви купуєте");$("iName").focus();return false;}
+  const key=norm(name);
+  const dup=allItems().find(i=>norm(i.name)===key);
+  if(dup){askDetail(name,amt,dup);return false;}
+  d.items.push({name,amt,cat:selCat,rate:rateNow()});persist();render();
+  $("iName").value="";$("iAmt").value="";hideDup();return true;
+}
+let pending=null;
+function joinName(base,det){det=det.trim().replace(/^[,\s]+/,"");return det?base+", "+det:base;}
+function askDetail(base,amt,dup){
+  pending={base,amt};
+  const key=norm(base);
+  const same=allItems().filter(i=>norm(i.name)===key||norm(i.name).startsWith(key+" ")).length;
+  $("dupMsg").textContent="«"+dup.name+"» вже є у Вашому списку (День "+dup.day+"). Уточніть, яка саме ця покупка, щоб вона була схожа на справжню.";
+  const chips=$("dupChips");chips.textContent="";
+  ["№"+(same+1),"Київ","Львів","Одеса","біля моря","у горах","у Європі","нова модель"].forEach(t=>{const b=document.createElement("button");b.type="button";b.className="idea";b.textContent="+ "+t;b.onclick=()=>{const v=$("iDetail").value.trim();$("iDetail").value=v?v+", "+t:t;updPreview();$("iDetail").focus();};chips.append(b);});
+  $("iDetail").value="";$("dupBox").hidden=false;updPreview();$("iDetail").focus();
+}
+function updPreview(){if(pending)$("dupPreview").textContent=joinName(pending.base,$("iDetail").value)+" · "+both(pending.amt,rateNow());}
+function hideDup(){pending=null;$("dupBox").hidden=true;$("iDetail").value="";}
+function confirmDup(){
+  if(!pending)return;
+  const det=$("iDetail").value.trim();
+  if(!det){toast("Допишіть уточнення: місто, вулицю, модель або номер");$("iDetail").focus();return;}
+  if(pending.amt>leftNow()){toast("На рахунку лише "+short(leftNow())+".");hideDup();return;}
+  const full=joinName(pending.base,det),amt=pending.amt;
+  const dup=allItems().find(i=>norm(i.name)===norm(full));
+  if(dup){$("dupMsg").textContent="«"+dup.name+"» теж уже є (День "+dup.day+"). Додайте інше уточнення.";$("iDetail").select();return;}
+  cur().items.push({name:full,amt,cat:selCat,rate:rateNow()});persist();
+  $("iName").value="";$("iAmt").value="";hideDup();render();
+  toast(leftNow()===0n?"Оплачено. Рахунок на нулі!":"Оплачено: "+full);
+}
+$("iDetail").addEventListener("input",updPreview);
+$("dupOk").onclick=confirmDup;
+$("dupCancel").onclick=()=>{hideDup();$("iName").focus();};
+$("iName").addEventListener("input",()=>{if(pending)hideDup();});
+$("addForm").addEventListener("submit",e=>{
+  e.preventDefault();
+  if(pending){confirmDup();return;}
+  const name=$("iName").value.trim();
+  let amt=toCents($("iAmt").value,Number($("iUnit").value));
+  if(amt===null||amt<=0n){toast("Вкажіть суму покупки, наприклад 250 або 1,5");$("iAmt").focus();return;}
+  const left=leftNow();
+  if($("iCur").value==="uah"){const r=BigInt(rateNow());amt=(amt*100n+r/2n)/r;if(amt<=0n){toast("Сума замала, менше 1 цента");return;}if(amt>left&&amt-left<=1n)amt=left;}
+  if(amt>left){toast("На рахунку лише "+both(left,rateNow())+". Зменште суму або натисніть «Уся решта сюди».");return;}
+  if(tryAdd(name,amt)){$("iName").focus();toast(leftNow()===0n?"Оплачено. Рахунок на нулі!":"Оплачено");}
+});
+$("allBtn").onclick=()=>{const left=leftNow();if(left<=0n)return;if(tryAdd($("iName").value.trim(),left))toast("Решту витрачено. Рахунок на нулі!");};
+$("closeDay").onclick=()=>{if(leftNow()!==0n)return;cur().closed=true;S.lastDone=today();S.seenPush=Math.max(S.seenPush,S.day);lsSave();clearTimeout(saveT);pushState();render();window.scrollTo({top:0,behavior:"smooth"});toast("День "+S.day+" закрито");};
+$("rateOk").onclick=()=>{
+  const k=toCents($("iRate").value,0);
+  if(k===null||k<100n||k>100000n){toast("Впишіть курс числом, наприклад 41,50");$("iRate").focus();return;}
+  cur().rate=Number(k);S.lastRate=Number(k);
+  cur().items.forEach(i=>{i.rate=Number(k);});
+  persist();render();toast("Курс збережено: 1 $ = "+rateStr(Number(k)));$("iName").focus();
+};
+$("iRate").addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();$("rateOk").click();}});
+$("rateEdit").onclick=()=>{cur().rate=0;persist();render();$("iRate").value=(S.lastRate/100).toFixed(2).replace(".",",");$("iRate").focus();$("iRate").select();};
+$("pushX").onclick=()=>{S.seenPush=S.day;persist();render();};
+$("noticeX").onclick=()=>{S.notice="";persist();render();};
+$("iUser").addEventListener("input",e=>{S.name=e.target.value.trim();persist();$("hello").textContent=greet();});
+document.querySelectorAll("#titleSet .cat,#welcomeTitle .cat").forEach(b=>b.onclick=()=>{S.title=S.title===b.dataset.t?"":b.dataset.t;persist();render();});
+$("welcomeSave").onclick=()=>{const n=$("wName").value.trim();if(n)S.name=n;S.welcomed=true;persist();render();toast(addr()?"Раді знайомству, "+addr()+"!":"Збережено");};
+$("resetAsk").onclick=()=>{$("resetBox").hidden=false;};
+$("resetNo").onclick=()=>{$("resetBox").hidden=true;};
+$("resetYes").onclick=()=>{const n=S.name,t=S.title;S=fresh();S.name=n;S.title=t;persist();$("resetBox").hidden=true;render();switchTab("home");toast("Новий шлях почався");};
+function switchTab(p){document.querySelectorAll("nav.tabs button").forEach(b=>b.setAttribute("aria-selected",b.dataset.p===p));["home","hist","stats","set"].forEach(x=>$("p-"+x).hidden=x!==p);}
+document.querySelectorAll("nav.tabs button").forEach(b=>b.onclick=()=>{switchTab(b.dataset.p);window.scrollTo({top:0});});
+
+function stars(){const c=$("stars");const r=c.getBoundingClientRect();const dpr=window.devicePixelRatio||1;c.width=r.width*dpr;c.height=r.height*dpr;const g=c.getContext("2d");g.scale(dpr,dpr);
+  let seed=7;const rnd=()=>(seed=(seed*9301+49297)%233280)/233280;
+  for(let i=0;i<70;i++){g.fillStyle="rgba(244,235,214,"+(0.15+rnd()*0.6)+")";g.beginPath();g.arc(rnd()*r.width,rnd()*r.height,rnd()*1.3+0.2,0,7);g.fill();}
+  g.strokeStyle="rgba(226,184,90,.35)";g.lineWidth=1;const pts=[[.62,.22],[.72,.16],[.8,.28],[.9,.2],[.86,.4]];g.beginPath();pts.forEach((p,i)=>{const x=p[0]*r.width,y=p[1]*r.height;i?g.lineTo(x,y):g.moveTo(x,y);});g.stroke();
+  pts.forEach(p=>{g.fillStyle="#E2B85A";g.beginPath();g.arc(p[0]*r.width,p[1]*r.height,2,0,7);g.fill();});}
+
+function openUrl(u){if(TG&&TG.openLink)TG.openLink(u);else window.open(u,"_blank");}
+$("payBtn").onclick=async()=>{
+  if(SRV.invoiceUrl){openUrl(SRV.invoiceUrl);return;}
+  $("payBtn").disabled=true;
+  try{const r=await jsonp({action:"invoice",initData:INIT});if(r&&r.ok&&r.invoiceUrl){SRV.invoiceUrl=r.invoiceUrl;openUrl(r.invoiceUrl);}else toast("Не вдалося створити рахунок на оплату. Спробуйте за хвилину.");}
+  catch(e){toast("Немає зв'язку з банком. Перевірте інтернет.");}
+  $("payBtn").disabled=false;
+};
+$("payCheck").onclick=async()=>{
+  $("payCheck").disabled=true;
+  try{const r=await jsonp({action:"load",initData:INIT});
+    if(r&&r.ok){SRV=Object.assign(SRV,r);sync();persist();render();
+      toast(SRV.paid?"Оплату отримано! Шлях продовжується":"Оплата ще не надійшла. Якщо Ви вже оплатили, зачекайте кілька хвилин.");}
+  }catch(e){toast("Немає зв'язку з банком. Перевірте інтернет.");}
+  $("payCheck").disabled=false;
+};
+$("retry").onclick=connect;
+if(TG){try{TG.ready();TG.expand();}catch(e){}}
+
+const saved=lsLoad();if(saved&&saved.v===3&&saved.days)S=saved;
+if(DEMO)sync();
+render();stars();window.addEventListener("resize",stars);
+connect();
+document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible"&&!DEMO){sync();render();}});
+})();
+</script>
+
+</body>
+</html>
