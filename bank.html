@@ -128,6 +128,7 @@ input[type=text],input[type=number],select{width:100%;background:var(--bg);borde
 .txr .del{background:none;border:0;color:var(--muted);font-size:18px;padding:4px}
 .empty{color:var(--muted);font-size:14px;padding:6px 0}
 .left{display:flex;justify-content:space-between;gap:10px;font-size:14px;padding-top:10px;border-top:1px solid var(--line)}
+.tx[hidden]+.left{padding-top:0;border-top:0}
 .left b.ok{color:var(--good)} .left b.warn{color:var(--warn)}
 .closed{display:flex;flex-direction:column;gap:6px;align-items:flex-start;background:var(--gold-soft);border-radius:16px;padding:14px}
 .closed b{font-family:var(--f-display);font-weight:600;font-size:15px}
@@ -238,7 +239,7 @@ nav.tabs button[aria-selected="true"]{color:var(--gold)}
           <div class="ideas" id="dupChips"></div>
           <span class="pre">У виписці буде: <b id="dupPreview"></b></span>
           <div class="btns">
-            <button class="btn" type="button" id="dupOk">Купити з уточненням</button>
+            <button class="btn" type="button" id="dupOk">Оплатити з уточненням</button>
             <button class="btn ghost" type="button" id="dupCancel">Скасувати</button>
           </div>
         </div>
@@ -252,7 +253,7 @@ nav.tabs button[aria-selected="true"]{color:var(--gold)}
           </span>
         </label>
         <div class="btns">
-          <button class="btn" type="submit">Купити</button>
+          <button class="btn" type="submit">Оплатити</button>
           <button class="btn ghost" type="button" id="allBtn">Уся решта сюди</button>
         </div>
       </form>
@@ -260,7 +261,6 @@ nav.tabs button[aria-selected="true"]{color:var(--gold)}
       <div class="box">
         <div class="tx" id="todayTx"></div>
         <div class="left"><span>Залишок на рахунку</span><b class="num" id="leftTxt">1 000 $</b></div>
-        <span class="hint" id="closeHint"></span>
       </div>
 
     </div>
@@ -449,7 +449,9 @@ function effLast(){
   if(l&&SRV.paid&&SRV.paidAt&&l<SRV.paidAt){const p=addDays(SRV.paidAt,-1);if(p>l)l=p;}
   return l;
 }
+function fixStuck(){const d=cur();if(!d.closed&&d.items.length&&leftNow()===0n){d.closed=true;if(!S.lastDone||S.lastDone<today())S.lastDone=today();S.seenPush=Math.max(S.seenPush,S.day);persist();}}
 function sync(){
+  fixStuck();
   if(locked())return;
   const last=effLast();
   if(!last)return;
@@ -512,10 +514,9 @@ function render(){
   $("tipText").textContent=PROMPTS[S.day-1]?"Ідея дня: "+PROMPTS[S.day-1]:"";
   $("leftHead").textContent=left===0n?"Усе витрачено. Можна закривати день":(addr()?cap(addr())+", у Вас є ":"У Вас є ")+both(left,rt)+". Купуйте все, що бажаєте";
   const tx=$("todayTx");tx.textContent="";
-  if(!d.items.length){const e=document.createElement("div");e.className="empty";e.textContent="Поки жодної покупки. Почніть з того, чого хочеться найбільше.";tx.append(e);}
+  tx.hidden=!d.items.length;
   d.items.forEach((it,i)=>tx.append(txRow(it,it.t?"Сьогодні, "+it.t:"Сьогодні",()=>{d.items.splice(i,1);persist();render();})));
   const lt=$("leftTxt");lt.textContent=money(left)+(rt?" · "+uah(left,rt):"");lt.className="num "+(left===0n?"ok":"warn");
-  $("closeHint").textContent=left===0n?"":"День закриється автоматично, коли на рахунку залишиться 0. Залишилось витратити "+both(left,rt)+".";
   $("allBtn").disabled=left<=0n;
   if(S.seenPush<S.day&&!d.closed){$("pushText").textContent=(addr()?cap(addr())+", на":"На")+" Ваш рахунок зараховано "+short(cr)+" всесвітніх коштів. "+(rt?"Що сьогодні купуємо?":"Який сьогодні курс долара?");$("push").hidden=false;}
   else $("push").hidden=true;
